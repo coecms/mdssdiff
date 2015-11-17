@@ -46,3 +46,5 @@ To check if all the files have been correctly copied:
 ```
 mdssdiff -p personal/me -r data
 ```
+This will show a list of which files are present/absent on the local or remote (mdss) filesystem. It 
+will also notify show any files which differ in size.
