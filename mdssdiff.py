@@ -23,7 +23,53 @@ from __future__ import print_function
 import os
 import subprocess
 import argparse
+import shlex
 from itertools import izip
+
+# supported_file_types = ('-','b','c','C')
+
+def diffdir(prefix, directory, mdsscmd="mdss ls -l", recursive=False, verbose=False):
+
+    missinglocal = []; missingremote = []; mismatched = []; mismatchedsizes = []
+
+    for root, dirs, files in os.walk(directory):
+        if (root != directory and not recursive):
+            print("Skipping subdirectories of {0} :: recursive option not specified".format(directory))
+            break
+        remoteinfo = {}
+        remotedir = os.path.join(prefix,root)
+        cmd = shlex.split(mdsscmd)
+        cmd.append(remotedir)
+        try:
+            output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
+        except:
+            print("Could not get listing from mdss for ",remotedir)
+            raise
+        for line in output.splitlines():
+            try:
+                flags, links, user, group, size, month, day, year, path = line.split()
+            except:
+                continue
+                # print("Could not parse mdss file listing: ",remotefile)
+            # Ignore directories
+            if not flags.startswith('d'):
+                remoteinfo[path] = int(size)
+        for file in files:
+            fullpath = os.path.join(root,file)
+            if file in remoteinfo:
+                remotefile = os.path.join(prefix,fullpath)
+                if verbose: print(fullpath,remotefile)
+                size_orig = os.path.getsize(fullpath)
+                if size_orig != remoteinfo[file]:
+                    mismatched.append(fullpath)
+                    mismatchedsizes.append((size_orig,remoteinfo[file]))
+                del(remoteinfo[file])
+            else:
+                missingremote.append(fullpath)
+        for file in remoteinfo.keys():
+            fullpath = os.path.join(root,file)
+            missinglocal.append(fullpath)
+    return missinglocal, missingremote, mismatched, mismatchedsizes
 
 if __name__ == "__main__":
 
@@ -39,63 +85,23 @@ if __name__ == "__main__":
     else:
         prefix = '.'
 
-    mdsscmd = 'mdss'
     verbose = args.verbose
-    supported_file_types = ('-','b','c','C')
-
-    missinglocal = []
-    missingremote = []
-    mismatched = []
-    mismatchedsizes = []
 
     for directory in args.inputs:
-        for root, dirs, files in os.walk(directory):
-            if (root != directory and not args.recursive):
-                print("Skipping subdirectories of {0} :: --recursive option not specified".format(directory))
-                break
-            remoteinfo = {}
-            remotedir = os.path.join(prefix,root)
-            cmd = [mdsscmd,"ls","-l",remotedir]
-            # print cmd
-            try:
-                output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
-            except:
-                print("Could not get listing from mdss for ",remotedir)
-                raise
-            for line in output.splitlines():
-                try:
-                    flags, links, user, group, size, month, day, year, path = line.split()
-                except:
-                    continue
-                    # print("Could not parse mdss file listing: ",remotefile)
-                if flags.startswith(supported_file_types):
-                    remoteinfo[path] = int(size)
-            for file in files:
-                fullpath = os.path.join(root,file)
-                if file in remoteinfo:
-                    remotefile = os.path.join(prefix,fullpath)
-                    if verbose: print(fullpath,remotefile)
-                    size_orig = os.path.getsize(fullpath)
-                    if size_orig != remoteinfo[file]:
-                        mismatched.append(fullpath)
-                        mismatchedsizes.append((size, size_orig))
-                    del(remoteinfo[file])
-                else:
-                    missingremote.append(fullpath)
-            for file in remoteinfo.keys():
-                missinglocal.append(fullpath)
 
-    if len(missinglocal) > 0:
-        print("Missing on local filesystem:")
-        for file in missinglocal:
-            print(file)
+        missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, recursive=args.recursive, verbose=args.verbose)
 
-    if len(missingremote) > 0:
-        print("Missing on remote filesystem:")
-        for file in missingremote:
-            print(file)
+        if len(missinglocal) > 0:
+            print("Missing on local filesystem:")
+            for file in missinglocal:
+                print(file)
 
-    if len(mismatched) > 0:
-        print("Size does not match:")
-        for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
-            print("{} remote: {} local: {}".format(file, size, size_orig))
+        if len(missingremote) > 0:
+            print("Missing on remote filesystem:")
+            for file in missingremote:
+                print(file)
+
+        if len(mismatched) > 0:
+            print("Size does not match:")
+            for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
+                print("{} remote: {} local: {}".format(file, size, size_orig))
