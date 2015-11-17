@@ -106,6 +106,6 @@ if __name__ == "__main__":
             if len(mismatched) > 0:
                 print("Size does not match:")
                 for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
-                    print("{} remote: {} local: {}".format(file, size, size_orig))
+                    print("{} local: {} remote: {}".format(file, size, size_orig))
         else:
             print("Skipping {} :: not a directory".format(directory))
