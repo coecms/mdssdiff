@@ -34,7 +34,7 @@ optional arguments:
 For example, say you have a personal directory on mdss:
 ```
 mdss ls -ld personal/me
-drwxrws--- 4 abc123 x77 92 Dec 14  2014 personal/me
+drwxrws--- 4 abc123 a00 92 Dec 14  2014 personal/me
 ```
 And you have used mdss to put another directory there
 ```
