@@ -89,19 +89,23 @@ if __name__ == "__main__":
 
     for directory in args.inputs:
 
-        missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, recursive=args.recursive, verbose=args.verbose)
+        if os.path.isdir(directory):
 
-        if len(missinglocal) > 0:
-            print("Missing on local filesystem:")
-            for file in missinglocal:
-                print(file)
+            missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, recursive=args.recursive, verbose=args.verbose)
 
-        if len(missingremote) > 0:
-            print("Missing on remote filesystem:")
-            for file in missingremote:
-                print(file)
-
-        if len(mismatched) > 0:
-            print("Size does not match:")
-            for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
-                print("{} remote: {} local: {}".format(file, size, size_orig))
+            if len(missinglocal) > 0:
+                print("Missing on local filesystem:")
+                for file in missinglocal:
+                    print(file)
+    
+            if len(missingremote) > 0:
+                print("Missing on remote filesystem:")
+                for file in missingremote:
+                    print(file)
+    
+            if len(mismatched) > 0:
+                print("Size does not match:")
+                for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
+                    print("{} remote: {} local: {}".format(file, size, size_orig))
+        else:
+            print("Skipping {} :: not a directory".format(directory))
