@@ -67,8 +67,8 @@ def setup_module(module):
  
 def teardown_module(module):
     if verbose: print ("teardown_module   module:%s" % module.__name__)
-    # shutil.rmtree(dirtreeroot)
-    # runcmd('mdss rm -r {}'.format(prefix))
+    shutil.rmtree(dirtreeroot)
+    runcmd('mdss rm -r {}'.format(prefix))
 
 def test_diffdir():
     missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True)
