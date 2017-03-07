@@ -1,4 +1,5 @@
 import os
+import errno
 import sys
 import shlex
 import subprocess
@@ -17,9 +18,11 @@ _calmonths = dict( (x, i+1) for i, x in
                    enumerate(('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')) )
 
-def walk(project, top, topdown=True, onerror=None):
+def walk(top, project, topdown=True, onerror=None):
     """
     Generator that yields tuples of (root, dirs, nondirs).
+
+    Adapted from http://code.activestate.com/recipes/499334-remove-ftp-directory-walk-equivalent/
     """
 
     # We may not have read permission for top, in which case we can't
@@ -28,7 +31,7 @@ def walk(project, top, topdown=True, onerror=None):
     # minor reason when (say) a thousand readable directories are still
     # left to visit.  That logic is copied here.
     try:
-        dirs, nondirs = _mdss_listdir(project,top)
+        dirs, nondirs = _mdss_listdir(top, project)
     except os.error, err:
         if onerror is not None:
             onerror(err)
@@ -41,12 +44,12 @@ def walk(project, top, topdown=True, onerror=None):
         # is not accessible from anything but unix (POSIX) machines.
         path = os.path.join(top, dname)
         # Don't check for links, as walk does not identify links as directories
-        for x in walk(project, path, topdown, onerror):
+        for x in walk(path, project, topdown, onerror):
             yield x
     if not topdown:
         yield top, dirs, nondirs
 
-def _mdss_ls(project,path,options=None):
+def _mdss_ls(path,project,options=None):
     cmd = shlex.split('mdss -P {} ls -l'.format(project))
     if options is not None:
         cmd.extend(options)
@@ -57,14 +60,15 @@ def _mdss_ls(project,path,options=None):
         output = None
     return(output)
 
-def _mdss_listdir(project,path):
+def _mdss_listdir(path,project):
     """
     List the contents of the mdss path and return two tuples of filenames
     one for subdirectories, and one for non-directories (normal files and other
     stuff). 
+    Adapted from http://code.activestate.com/recipes/499334-remove-ftp-directory-walk-equivalent/
     """
     dirs, nondirs = [], []
-    listing = _mdss_ls(project,path)
+    listing = _mdss_ls(path,project)
 
     for line in StringIO.StringIO(listing):
         # Parse, assuming a UNIX listing
@@ -81,66 +85,125 @@ def _mdss_listdir(project,path):
         if filename in ('.', '..'):
             continue
 
-        # Get the type
-        mode = words[0]
-
-        if mode[0] == 'd':
+        if isdir(line):
             dirs.append(filename)
         else:
             nondirs.append(filename)
 
     return dirs, nondirs
 
-def isfile(project,path):
+def remote_put(prefix, files, project, mdsscmd='mdss -P {} put', mdssmkdir='mdss -P {} mkdir', verbose=0):
+
+    if not isinstance(files, list):
+        files = [files]
+
+    # Keep a list of remote directories that have been made
+    remotedirs = set()
+    for file in files:
+        rfile = os.path.join(prefix,file)
+        rdir = os.path.dirname(rfile)
+        # Check if we need to make a remote directory in which to put our files
+        if rdir not in remotedirs:
+            cmd = shlex.split(mdssmkdir.format(project))
+            cmd.append(rdir)
+            if verbose > 1: print(" ".join(cmd))
+            try:
+                subprocess.check_call(cmd,stderr=subprocess.STDOUT)
+            except:
+                if verbose > 0: print("Could not make remote directory ",rdir)
+            else:
+                # Add remote directory to set so not made again
+                remotedirs.add(rdir)
+        cmd = shlex.split(mdsscmd.format(project))
+        cmd.extend((file,rfile))
+        if verbose > 1: print(" ".join(cmd))
+        try:
+            output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
+        except:
+            if verbose: print("Could not copy ",file," to remote location: ",os.path.join(prefix,file))
+
+def remote_get(prefix, files, project, mdsscmd='mdss -P {} get', verbose=False):
+
+    if not isinstance(files, list):
+        files = [files]
+
+    for file in files:
+        # Make sure there is a destination directory
+        mkdir_p(os.path.dirname(file))
+        cmd = shlex.split(mdsscmd.format(project))
+        cmd.extend([os.path.join(prefix,file),file])
+        if verbose > 1: print(cmd)
+        try:
+            output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
+        except:
+            if verbose > 0: print("Could not copy ",file," from remote location: ",os.path.join(prefix,file))
+
+def mkdir_p(path):
+    # http://stackoverflow.com/a/600612
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
+def isfile(path,project=None):
     """Return true if the pathname refers to an existing directory."""
-    if ismode(project,path,'-'):
+    if ismode(path,'-',project):
         return True
     else:
         return False
 
-def isdir(project,path):
+def isdir(path,project=None):
     """Return true if the pathname refers to an existing directory."""
-    if ismode(project,path,'d'):
+    if ismode(path,'d',project):
         return True
     else:
         return False
 
-def islink(project,path):
+def islink(path,project=None):
     """Return true if the pathname refers to an existing directory."""
-    if ismode(project,path,'l'):
+    if ismode(path,'l',project):
         return True
     else:
         return False
 
-def ismode(project,path,mode):
+def ismode(path,mode,project=None):
     """Return true if the mode of path equals mode specified."""
-    if getmode(project,path) == mode:
+    if getmode(path,project) == mode:
         return True
     else:
         return False
 
-def getmode(project,path):
+def getmode(path,project=None):
     """Return true if the pathname refers to an existing directory."""
-    line = _mdss_ls(project,path,['-d'])
+    line = getls(path,project)
     return line[0]
 
-def getsize(project,path):
+def getsize(path,project=None):
     """Return the size of a file parsed from listing."""
-    line = _mdss_ls(project,path)
-    line = line.rstrip()
+    line = getls(path,project)
     words = line.split(None, 8)
     if len(words) < 6:
         return None
     else:
         return int(words[4])
 
-def getmtime(project,path):
+def getls(path,project=None):    
+    """If no project path is assumed to be a unix line listing, otherwise
+    get listing"""
+    if project is None:
+        line = path
+    else:
+        line = _mdss_ls(path,project,['-d']).rstrip()
+    return line
+
+def getmtime(path,project=None):
     """Return the last modification time of a file parsed from listing.
     This is potentially spectacularly inaccurate, as times older than 6 months
     have only year/month/day and no time of day information."""
-
-    line = _mdss_ls(project,path,['-d'])
-    line = line.rstrip()
+    line = getls(path,project)
     words = line.split(None, 8)
     if len(words) < 6:
         return None
@@ -161,71 +224,3 @@ def getmtime(project,path):
             raise ValueError("Could not parse time/year in line: '%s'" % line)
     dt = datetime.datetime(year, month, day, hour, min)
     return time.mktime(dt.timetuple())
-
-def _mdss_fulllistdir(project,path):
-    """
-    List the contents of the mdss path and return two tuples of
-
-       (filename, size, mtime, mode, link)
-
-    one for subdirectories, and one for non-directories (normal files and other
-    stuff).  If the path is a symbolic link, 'link' is set to the target of the
-    link (note that both files and directories can be symbolic links).
-    """
-    dirs, nondirs = [], []
-    listing = _mdss_ls(project,path)
-
-    for line in StringIO.StringIO(listing):
-        # Parse, assuming a UNIX listing
-        if line.startswith("total"): continue
-        # Remove trailing newline (and whitespace)
-        line = line.rstrip()
-        words = line.split(None, 8)
-        if len(words) < 6:
-            print >> sys.stderr, 'Warning: Error reading short line', line
-            continue
-
-        # Get the filename.
-        filename = words[-1].lstrip()
-        if filename in ('.', '..'):
-            continue
-
-        # Get the type and mode.
-        mode = words[0]
-
-        extra = None
-        # Get the link target, if the file is a symlink.
-        if mode[0] == 'l':
-            i = filename.find(" -> ")
-            if i >= 0:
-                extra = filename[i+4:]
-                filename = filename[:i]
-
-        # Get the file size.
-        size = int(words[4])
-
-        # Get the date.
-        year = datetime.datetime.today().year
-        month = _calmonths[words[5]]
-        day = int(words[6])
-        mo = re.match('(\d+):(\d+)', words[7])
-        if mo:
-            hour, min = map(int, mo.groups())
-        else:
-            mo = re.match('(\d\d\d\d)', words[7])
-            if mo:
-                year = int(mo.group(1))
-                hour, min = 0, 0
-            else:
-                raise ValueError("Could not parse time/year in line: '%s'" % line)
-        dt = datetime.datetime(year, month, day, hour, min)
-        mtime = time.mktime(dt.timetuple())
-
-        entry = (filename, size, mtime, mode, extra)
-        if mode[0] == 'd':
-            dirs.append(entry)
-        else:
-            nondirs.append(entry)
-
-    return dirs, nondirs
-

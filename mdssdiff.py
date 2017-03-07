@@ -26,94 +26,58 @@ import argparse
 import shlex
 from itertools import izip
 
+import mdsspath
+
+def walk(path,project=None):
+    if project is None:
+        return os.walk(path)
+    else:
+        return mdsspath.walk(path,project)
+
+def getlisting(path,project=None,recursive=False):
+
+    listing = set() 
+
+    for (dname, dirnames, filenames) in walk(path,project):
+
+        if (dname != path and not recursive):
+            print("Skipping subdirectories of {0} :: recursive option not specified".format(dname))
+            break
+    
+        for file in filenames:
+            listing.add(os.path.join(dname,file))
+
+    return listing
+
 # supported_file_types = ('-','b','c','C')
 
-def diffdir(prefix, directory, mdsscmd="mdss ls -l", recursive=False, verbose=0):
+def diffdir(prefix, directory, project, mdsscmd="mdss ls -l", recursive=False, verbose=0):
 
     missinglocal = []; missingremote = []; mismatched = []; mismatchedsizes = []
 
-    for root, dirs, files in os.walk(directory):
-        if (root != directory and not recursive):
-            print("Skipping subdirectories of {0} :: recursive option not specified".format(directory))
-            break
-        remoteinfo = {}
-        remotedir = os.path.join(prefix,root)
-        cmd = shlex.split(mdsscmd)
-        cmd.append(remotedir)
-        try:
-            output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
-        except:
-            output = None
-            if verbose > 0: print("Could not get listing from mdss for ",remotedir)
-        if output is not None:
-            for line in output.splitlines():
-                try:
-                    flags, links, user, group, size, month, day, year, path = line.split()
-                except:
-                    continue
-                # print("Could not parse mdss file listing: ",remotefile)
-                # Ignore directories
-                if not flags.startswith('d'):
-                    remoteinfo[path] = int(size)
-        for file in files:
-            fullpath = os.path.join(root,file)
-            if file in remoteinfo:
-                remotefile = os.path.join(prefix,fullpath)
-                if verbose > 1: print(fullpath,remotefile)
-                size_orig = os.path.getsize(fullpath)
-                if size_orig != remoteinfo[file]:
-                    mismatched.append(fullpath)
-                    mismatchedsizes.append((size_orig,remoteinfo[file]))
-                del(remoteinfo[file])
-            else:
-                missingremote.append(fullpath)
-        for file in remoteinfo.keys():
-            fullpath = os.path.join(root,file)
-            missinglocal.append(fullpath)
-    return missinglocal, missingremote, mismatched, mismatchedsizes
+    localset = getlisting(directory,recursive=recursive)
+    remoteset = getlisting(os.path.join(prefix,directory),project=project,recursive=recursive)
 
-def remote_put(prefix, files, mdsscmd='mdss put', mdssmkdir='mdss mkdir', verbose=0):
+    for file in localset:
+        remotefile = os.path.join(prefix,file)
+        if remotefile in remoteset:
+            localsize = os.path.getsize(file)
+            remotesize = mdsspath.getsize(remotefile,project)
+            if localsize != remotesize:
+                mismatched.append(file)
+                mismatchedsizes.append((localsize,remotesize))
+            remoteset.discard(remotefile)
+        else:
+            missingremote.append(file)
 
-    # Keep a list of remote directories that have been made
-    remotedirs = set()
-    for file in files:
-        rfile = os.path.join(prefix,file)
-        rdir = os.path.dirname(rfile)
-        # Check if we need to make a remote directory in which to put our files
-        if rdir not in remotedirs:
-            cmd = shlex.split(mdssmkdir)
-            cmd.append(rdir)
-            if verbose > 0: print(" ".join(cmd))
-            try:
-                subprocess.check_call(cmd,stderr=subprocess.STDOUT)
-            except:
-                if verbose > 0: print("Could not make remote directory ",rdir)
-            else:
-                # Add remote directory to set so not made again
-                remotedirs.add(rdir)
-        cmd = shlex.split(mdsscmd)
-        cmd.extend((file,rfile))
-        if verbose > 1: print(" ".join(cmd))
-        try:
-            output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
-        except:
-            if verbose: print("Could not copy ",file," to remote location: ",os.path.join(prefix,file))
+    missinglocal = map(lambda x: os.path.relpath(x,prefix),list(remoteset))
 
-def remote_get(prefix, files, mdsscmd='mdss get -r', verbose=False):
-
-    for file in files:
-        cmd = shlex.split(mdsscmd)
-        cmd.append(os.path.join(prefix,file),file)
-        if verbose > 1: print(cmd)
-        try:
-            output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
-        except:
-            if verbose > 0: print("Could not copy ",file," from remote location: ",os.path.join(prefix,file))
-
+    return(missinglocal, missingremote, mismatched, mismatchedsizes)
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Compare local directories and those on mdss. Report differences")
     parser.add_argument("-v","--verbose", help="Increase verbosity", action='count', default=0)
+    parser.add_argument("-P","--project", help="Project code for mdss (default to $PROJECT)")
     parser.add_argument("-p","--pathprefix", help="Prefix for mdss path")
     parser.add_argument("-r","--recursive", help="Recursively descend directories (default False)", action='store_true')
     #
@@ -132,36 +96,45 @@ if __name__ == "__main__":
 
     verbose = args.verbose
 
+    if args.project is None:
+        project = os.environ['PROJECT']
+    else:
+        project = args.project
+
     for directory in args.inputs:
 
         if os.path.isdir(directory):
 
-            missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, recursive=args.recursive, verbose=args.verbose)
+            missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, project, recursive=args.recursive, verbose=args.verbose)
 
             if len(missinglocal) > 0:
                 if args.copylocal:
-                    remote_get(prefix,missinglocal,verbose=args.verbose)
+                    print("Copying to local filesystem:")
+                    mdsspath.remote_get(prefix,missinglocal,project,verbose=args.verbose)
                 else:
                     print("Missing on local filesystem:")
-                    for file in missinglocal:
-                        print(file)
+                for file in missinglocal:
+                    print(file)
     
             if len(missingremote) > 0:
                 if args.copyremote:
-                    remote_put(prefix,missingremote,verbose=args.verbose)
+                    print("Copying to remote filesystem:")
+                    mdsspath.remote_put(prefix,missingremote,project,verbose=args.verbose)
                 else:
                     print("Missing on remote filesystem:")
-                    for file in missingremote:
-                        print(file)
+                for file in missingremote:
+                    print(file)
     
             if len(mismatched) > 0:
-                if args.copyremote and args.force:
-                    remote_put(prefix,mismatched,verbose=args.verbose)
-                elif args.copylocal and args.force:
-                    remote_get(prefix,mismatched,verbose=args.verbose)
-                else:
-                    print("Size does not match:")
-                    for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
-                        print("{} local: {} remote: {}".format(file, size, size_orig))
+                print("Size does not match:")
+                for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
+                    print("{} local: {} remote: {}".format(file, size, size_orig))
+                if args.force:
+                    if args.copyremote:
+                        print("Copying to remote filesystem")
+                        mdsspath.remote_put(prefix,mismatched,project,verbose=args.verbose)
+                    elif args.copylocal:
+                        print("Copying to local filesystem")
+                        mdsspath.remote_get(prefix,mismatched,project,verbose=args.verbose)
         else:
             print("Skipping {} :: not a directory".format(directory))
