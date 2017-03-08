@@ -47,6 +47,8 @@ dumbname = 'nowayisthereadirectorycalledthis'
 
 # Test if we have a working mdss to connect to
 try:
+    if 'DEBUGLOCAL' in os.environ:
+        raise ValueError('A very specific bad thing happened')
     project=os.environ['PROJECT']
     mdsspath.mdss_ls(".",project)
 except:
@@ -57,6 +59,7 @@ except:
     mdsspath._mdss_get_cmd   = 'cp'
     mdsspath._mdss_mkdir_cmd = 'mkdir'
     mdsspath._mdss_rm_cmd    = 'rm'
+    mdsspath._mdss_rmdir_cmd = 'rmdir'
     project=''
 
 def touch(fname, times=None):
