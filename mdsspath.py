@@ -23,6 +23,7 @@ _mdss_put_cmd   = 'mdss -P {} put'
 _mdss_get_cmd   = 'mdss -P {} get'
 _mdss_mkdir_cmd = 'mdss -P {} mkdir'
 _mdss_rm_cmd    = 'mdss -P {} rm'
+_mdss_rmdir_cmd = 'mdss -P {} rmdir'
 
 def walk(top, project, topdown=True, onerror=None):
     """
@@ -63,7 +64,7 @@ def mdss_ls(path,project,options=None):
     try:
         output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
     except:
-        output = None
+        output = ''
     return(output)
 
 def mdss_listdir(path, project):
@@ -98,7 +99,7 @@ def mdss_listdir(path, project):
 
     return dirs, nondirs
 
-def mdss_mkdir(dir, prefix):
+def mdss_mkdir(dir, project, verbose=0):
     cmd = shlex.split(_mdss_mkdir_cmd.format(project))
     cmd.append(dir)
     if verbose > 1: print(" ".join(cmd))
@@ -123,7 +124,7 @@ def remote_put(prefix, files, project, verbose=0):
         except:
             if verbose: print("Could not copy ",file," to remote location: ",os.path.join(prefix,file))
 
-def remote_get(prefix, files, project, verbose=False):
+def remote_get(prefix, files, project, verbose=0):
 
     if not isinstance(files, list):
         files = [files]
@@ -180,16 +181,21 @@ def ismode(path,mode,project=None):
 def getmode(path,project=None):
     """Return true if the pathname refers to an existing directory."""
     line = getls(path,project)
-    return line[0]
+    return line[0] if len(line) > 0 else ''
 
 def getsize(path,project=None):
     """Return the size of a file parsed from listing."""
     line = getls(path,project)
     words = line.split(None, 8)
-    if len(words) < 6:
+    if len(words) < 7:
         return None
     else:
-        return int(words[4])
+        try:
+            size = int(words[4])
+        except ValueError:
+            return None
+        else:
+            return size
 
 def getls(path,project=None):    
     """If no project path is assumed to be a unix line listing, otherwise

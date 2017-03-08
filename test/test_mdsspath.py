@@ -43,6 +43,8 @@ dirtreeroot = dirs[0]
 verbose=False
 prefix='test_mdss'
 
+dumbname = 'nowayisthereadirectorycalledthis'
+
 # Test if we have a working mdss to connect to
 try:
     project=os.environ['PROJECT']
@@ -91,10 +93,14 @@ def teardown_module(module):
     if verbose: print ("teardown_module   module:%s" % module.__name__)
     shutil.rmtree(dirtreeroot)
     runcmd(" ".join([mdsspath._mdss_rm_cmd.format(project),'-r',prefix]))
+    runcmd(" ".join([mdsspath._mdss_rmdir_cmd.format(project),dumbname]))
 
 def test_integrity():
 
     assert(os.path.isdir(dirs[0]))
+    assert(not mdsspath.isdir(dumbname,project))
+    mdsspath.mdss_mkdir(dumbname,project)
+    assert(mdsspath.isdir(dumbname,project))
     assert(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project) == (['2'], ['lala', 'po']))
     assert(mdsspath.getsize(os.path.join(prefix,*paths[2]),project) == 3)
     
