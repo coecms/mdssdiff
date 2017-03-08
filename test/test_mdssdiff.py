@@ -25,6 +25,8 @@ import pytest
 import sys
 import os
 import shutil
+import subprocess
+import shlex
 
 # Find the python libraries we're testing
 sys.path.append('..')
@@ -36,34 +38,40 @@ dirs = ["1","2","3"]
 dirtree = os.path.join(*dirs)
 print(dirtree)
 paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1","2","Pluto"], ["1","2","3","Ren"], ["1","2","3","Stimpy"] ]
-remote = "remote"
+prefix = "test_mdss"
 dirtreeroot = dirs[0]
 verbose=False
+project=os.environ['PROJECT']
 
 def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812
     with open(fname, 'a'):
         os.utime(fname, times)
 
+def runcmd(cmd):
+    subprocess.check_call(shlex.split(cmd),stderr=subprocess.STDOUT)
+
 def setup_module(module):
     if verbose: print ("setup_module      module:%s" % module.__name__)
     try:
         shutil.rmtree(dirtreeroot)
-        shutil.rmtree(remote)
     except:
         pass
     os.makedirs(dirtree)
     for p in paths:
         touch(os.path.join(*p))
-    shutil.copytree(dirtreeroot, os.path.join(remote,dirtreeroot))
+    # shutil.copytree(dirtreeroot, os.path.join(remote,dirtreeroot))
+    runcmd('mdss mkdir {}'.format(prefix))
+    runcmd('mdss put -r {} {}'.format(dirs[0],prefix))
+ 
  
 def teardown_module(module):
     if verbose: print ("teardown_module   module:%s" % module.__name__)
     shutil.rmtree(dirtreeroot)
-    shutil.rmtree(remote)
+    runcmd('mdss rm -r {}'.format(prefix))
 
 def test_diffdir():
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True)
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatched) == 0)
@@ -73,16 +81,17 @@ def test_diffdir():
     file = os.path.join(*paths[5])
     os.remove(file)
     if verbose: print('removing {}'.format(file))
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(missinglocal == [file])
     assert(len(missingremote) == 0)
     assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
 
     # Remove same remote file
-    if verbose: print('removing {}'.format(os.path.join(remote,file)))
-    os.remove(os.path.join(remote,file))
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+    remotefile = os.path.join(prefix,file)
+    if verbose: print('removing {}'.format(remotefile))
+    runcmd('mdss -P {} rm {}'.format(project,remotefile))
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatched) == 0)
@@ -90,8 +99,10 @@ def test_diffdir():
 
     # Remove a remote file
     file = os.path.join(*paths[3])
-    os.remove(os.path.join(remote,file))
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+    remotefile = os.path.join(prefix,file)
+    if verbose: print('removing {}'.format(remotefile))
+    runcmd('mdss -P {} rm {}'.format(project,remotefile))
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(missingremote == [file])
     assert(len(mismatched) == 0)
@@ -99,7 +110,7 @@ def test_diffdir():
 
     # Remove same local file
     os.remove(file)
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatched) == 0)
@@ -110,28 +121,59 @@ def test_diffdir():
     fh = open(file,"wb")
     fh.write("\x5F\x9D\x3E")
     fh.close()
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(mismatched == [file])
     assert(mismatchedsizes == [(3,0)])
 
-    # Write 3 bytes into same remote file
-    fh = open(os.path.join(remote,file),"wb")
-    fh.write("\x5F\x9D\x3E")
-    fh.close()
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+def test_sync():
+
+    # Syncing different sized file from previous test
+    runcmd("mdssdiff.py -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
 
-    # Write 4 bytes into same remote file
-    fh = open(os.path.join(remote,file),"wb")
-    fh.write("\x5F\x9D\x3E\x00")
-    fh.close()
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(remote, dirtreeroot, mdsscmd="ls -l", recursive=True, verbose=verbose)
+    # (re)Make a local file
+    file = os.path.join(*paths[5])
+    touch(file)
+
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(len(missinglocal) == 0)
+    assert(missingremote == [ file ])
+    assert(len(mismatched) == 0)
+    assert(len(mismatchedsizes) == 0)
+
+    # Copy to remote
+    runcmd("mdssdiff.py -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(mismatched == [file])
-    assert(mismatchedsizes == [(3,4)])
+    assert(len(mismatched) == 0)
+    assert(len(mismatchedsizes) == 0)
+
+    # Remove same remote file
+    remotefile = os.path.join(prefix,file)
+    if verbose: print('removing {}'.format(remotefile))
+    runcmd('mdss -P {} rm {}'.format(project,remotefile))
+
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(len(missinglocal) == 0)
+    assert(missingremote == [ file ])
+    assert(len(mismatched) == 0)
+    assert(len(mismatchedsizes) == 0)
+
+    # Copy to remote
+    runcmd("mdssdiff.py -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+
+    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(len(missinglocal) == 0)
+    assert(len(missingremote) == 0)
+    assert(len(mismatched) == 0)
+    assert(len(mismatchedsizes) == 0)
+
