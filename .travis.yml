@@ -9,7 +9,7 @@ env:
   global:
     - PYTHONPATH=$PYTHONPATH:..:.
 script:
-    - py.test test
+    - py.test test/test_mdsspath.py
 after_success:
     - coverage run --source=mdssdiff.py,mdsspath.py,test/test_mdsspath.py -m py.test
     - codecov
