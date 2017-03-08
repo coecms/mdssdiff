@@ -51,7 +51,7 @@ def getlisting(path,project=None,recursive=False):
 
 # supported_file_types = ('-','b','c','C')
 
-def diffdir(prefix, directory, project, mdsscmd="mdss ls -l", recursive=False, verbose=0):
+def diffdir(prefix, directory, project, recursive=False, verbose=0):
 
     missinglocal = []; missingremote = []; mismatched = []; mismatchedsizes = []
 

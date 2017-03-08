@@ -44,6 +44,18 @@ verbose=False
 prefix='test_mdss'
 project=os.environ['PROJECT']
 
+# Test if we have a working mdss to connect to
+try:
+    mdsspath.mdss_ls(".",project)
+except:
+    # Monkey-patch to use local file commands if we don't
+    print("\n\n!!! No mdss: Monkey patching to use local commands !!!\n")
+    mdsspath._mdss_ls_cmd    = 'ls -l'
+    mdsspath._mdss_put_cmd   = 'cp'
+    mdsspath._mdss_get_cmd   = 'cp'
+    mdsspath._mdss_mkdir_cmd = 'mkdir'
+    mdsspath._mdss_rm_cmd    = 'rm'
+
 def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812
     with open(fname, 'a'):
@@ -69,18 +81,20 @@ def setup_module(module):
     fh.close()
 
     # shutil.copytree(dirtreeroot, os.path.join(remote,dirtreeroot))
-    runcmd('mdss mkdir {}'.format(prefix))
-    runcmd('mdss put -r {} {}'.format(dirs[0],prefix))
+    # Make our top level directory
+    runcmd(" ".join([mdsspath._mdss_mkdir_cmd.format(project),prefix]))
+    # Copy files into it
+    runcmd(" ".join([mdsspath._mdss_put_cmd.format(project),'-r',dirs[0],prefix]))
  
 def teardown_module(module):
     if verbose: print ("teardown_module   module:%s" % module.__name__)
     shutil.rmtree(dirtreeroot)
-    runcmd('mdss rm -r {}'.format(prefix))
+    runcmd(" ".join([mdsspath._mdss_rm_cmd.format(project),'-r',prefix]))
 
 def test_integrity():
 
     assert(os.path.isdir(dirs[0]))
-    assert(mdsspath._mdss_listdir(os.path.join(prefix,dirs[0]),project) == (['2'], ['lala', 'po']))
+    assert(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project) == (['2'], ['lala', 'po']))
     assert(mdsspath.getsize(os.path.join(prefix,*paths[2]),project) == 3)
     
 def test_get():
@@ -94,7 +108,7 @@ def test_get():
     listingremote = mdssdiff.getlisting(os.path.join(prefix,dirs[0]),project,recursive=True)
     for file in listingremote:
         # print(file)
-        assert(mdsspath.isfile(file),project)
+        assert(mdsspath.isfile(file,project))
         assert(os.path.relpath(file,prefix) in listinglocal)
 
     missingfile = listinglocal.pop()

@@ -18,6 +18,12 @@ _calmonths = dict( (x, i+1) for i, x in
                    enumerate(('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')) )
 
+_mdss_ls_cmd    = 'mdss -P {} ls -l'
+_mdss_put_cmd   = 'mdss -P {} put'
+_mdss_get_cmd   = 'mdss -P {} get'
+_mdss_mkdir_cmd = 'mdss -P {} mkdir'
+_mdss_rm_cmd    = 'mdss -P {} rm'
+
 def walk(top, project, topdown=True, onerror=None):
     """
     Generator that yields tuples of (root, dirs, nondirs).
@@ -31,7 +37,7 @@ def walk(top, project, topdown=True, onerror=None):
     # minor reason when (say) a thousand readable directories are still
     # left to visit.  That logic is copied here.
     try:
-        dirs, nondirs = _mdss_listdir(top, project)
+        dirs, nondirs = mdss_listdir(top, project)
     except os.error, err:
         if onerror is not None:
             onerror(err)
@@ -49,8 +55,8 @@ def walk(top, project, topdown=True, onerror=None):
     if not topdown:
         yield top, dirs, nondirs
 
-def _mdss_ls(path,project,options=None):
-    cmd = shlex.split('mdss -P {} ls -l'.format(project))
+def mdss_ls(path,project,options=None):
+    cmd = shlex.split(_mdss_ls_cmd.format(project))
     if options is not None:
         cmd.extend(options)
     cmd.append(path)
@@ -60,7 +66,7 @@ def _mdss_ls(path,project,options=None):
         output = None
     return(output)
 
-def _mdss_listdir(path,project):
+def mdss_listdir(path, project):
     """
     List the contents of the mdss path and return two tuples of filenames
     one for subdirectories, and one for non-directories (normal files and other
@@ -68,7 +74,7 @@ def _mdss_listdir(path,project):
     Adapted from http://code.activestate.com/recipes/499334-remove-ftp-directory-walk-equivalent/
     """
     dirs, nondirs = [], []
-    listing = _mdss_ls(path,project)
+    listing = mdss_ls(path,project)
 
     for line in StringIO.StringIO(listing):
         # Parse, assuming a UNIX listing
@@ -92,29 +98,24 @@ def _mdss_listdir(path,project):
 
     return dirs, nondirs
 
-def remote_put(prefix, files, project, mdsscmd='mdss -P {} put', mdssmkdir='mdss -P {} mkdir', verbose=0):
+def mdss_mkdir(dir, prefix):
+    cmd = shlex.split(_mdss_mkdir_cmd.format(project))
+    cmd.append(dir)
+    if verbose > 1: print(" ".join(cmd))
+    subprocess.check_call(cmd,stderr=subprocess.STDOUT)
+
+def remote_put(prefix, files, project, verbose=0):
 
     if not isinstance(files, list):
         files = [files]
 
-    # Keep a list of remote directories that have been made
-    remotedirs = set()
     for file in files:
         rfile = os.path.join(prefix,file)
         rdir = os.path.dirname(rfile)
         # Check if we need to make a remote directory in which to put our files
-        if rdir not in remotedirs:
-            cmd = shlex.split(mdssmkdir.format(project))
-            cmd.append(rdir)
-            if verbose > 1: print(" ".join(cmd))
-            try:
-                subprocess.check_call(cmd,stderr=subprocess.STDOUT)
-            except:
-                if verbose > 0: print("Could not make remote directory ",rdir)
-            else:
-                # Add remote directory to set so not made again
-                remotedirs.add(rdir)
-        cmd = shlex.split(mdsscmd.format(project))
+        if not isdir(rdir, project):
+            mdss_mkdir(rdir, project)
+        cmd = shlex.split(_mdss_put_cmd.format(project))
         cmd.extend((file,rfile))
         if verbose > 1: print(" ".join(cmd))
         try:
@@ -122,7 +123,7 @@ def remote_put(prefix, files, project, mdsscmd='mdss -P {} put', mdssmkdir='mdss
         except:
             if verbose: print("Could not copy ",file," to remote location: ",os.path.join(prefix,file))
 
-def remote_get(prefix, files, project, mdsscmd='mdss -P {} get', verbose=False):
+def remote_get(prefix, files, project, verbose=False):
 
     if not isinstance(files, list):
         files = [files]
@@ -130,7 +131,7 @@ def remote_get(prefix, files, project, mdsscmd='mdss -P {} get', verbose=False):
     for file in files:
         # Make sure there is a destination directory
         mkdir_p(os.path.dirname(file))
-        cmd = shlex.split(mdsscmd.format(project))
+        cmd = shlex.split(_mdss_get_cmd.format(project))
         cmd.extend([os.path.join(prefix,file),file])
         if verbose > 1: print(cmd)
         try:
@@ -196,7 +197,7 @@ def getls(path,project=None):
     if project is None:
         line = path
     else:
-        line = _mdss_ls(path,project,['-d']).rstrip()
+        line = mdss_ls(path,project,['-d']).rstrip()
     return line
 
 def getmtime(path,project=None):

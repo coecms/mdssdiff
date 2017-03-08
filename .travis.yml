@@ -11,6 +11,6 @@ env:
 script:
     - py.test test
 after_success:
-    - coverage run --source=mdssdiff.py,test/test_mdssdiff.py -m py.test
+    - coverage run --source=mdssdiff.py,mdsspath.py,test/test_mdsspath.py -m py.test
     - codecov
 
