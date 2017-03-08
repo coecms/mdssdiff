@@ -88,5 +88,5 @@ the copy will go (from or to mdss) depends on specifying either of the `-cr`
 or `-cl` options. e.g. to copy files of different size *from* the local
 directory *to* mdss
 ```
-mdssdiff -p personal/me -r -cr data
+mdssdiff -p personal/me -r -cr -f data
 ```
