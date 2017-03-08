@@ -58,7 +58,7 @@ mdssdiff -p personal/me data
 This will show a list of which files are present/absent on the local or remote (mdss) filesystem. It 
 will also notify show any files which differ in size.
 
-To recursively descend directories to check for differences used the
+To recursively descend directories to check for differences use the
 `-r` flag
 ```
 mdssdiff -p personal/me -r data
@@ -76,10 +76,10 @@ mdssdiff -p personal/me -r -cr data
 ```
 
 Equally, if you have deleted some files in your local directory that
-you wish to copy back from mdss you can use the `--copyremote/-cr`
+you wish to copy back from mdss you can use the `--copylocal/-cl`
 flag:
 ```
-mdssdiff -p personal/me -r -cr data
+mdssdiff -p personal/me -r -cl data
 ```
 
 If there are files of unequal size you must specify `-f/--force` to
