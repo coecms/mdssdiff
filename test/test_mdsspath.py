@@ -55,6 +55,7 @@ except:
     mdsspath._mdss_get_cmd   = 'cp'
     mdsspath._mdss_mkdir_cmd = 'mkdir'
     mdsspath._mdss_rm_cmd    = 'rm'
+    project=''
 
 def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812
