@@ -136,5 +136,7 @@ if __name__ == "__main__":
                     elif args.copylocal:
                         print("Copying to local filesystem")
                         mdsspath.remote_get(prefix,mismatched,project,verbose=args.verbose)
+                    else:
+                        print("Option to force copying (--force) given, but neither -cr nor -cl specified")
         else:
             print("Skipping {} :: not a directory".format(directory))
