@@ -42,10 +42,10 @@ remote = "remote"
 dirtreeroot = dirs[0]
 verbose=False
 prefix='test_mdss'
-project=os.environ['PROJECT']
 
 # Test if we have a working mdss to connect to
 try:
+    project=os.environ['PROJECT']
     mdsspath.mdss_ls(".",project)
 except:
     # Monkey-patch to use local file commands if we don't

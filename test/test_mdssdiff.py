@@ -43,19 +43,6 @@ dirtreeroot = dirs[0]
 verbose=False
 project=os.environ['PROJECT']
 
-# Test if we have a working mdss to connect to
-try:
-    # mdsspath.mdss_ls(".",project)
-    subprocess.check_call("mdsss",stderr=subprocess.STDOUT)
-except:
-    # Monkey-patch to use local file commands if we don't
-    print("\n\n!!! No mdss: Monkey patching to use local commands !!!\n")
-    mdsspath._mdss_ls_cmd    = 'ls -l'
-    mdsspath._mdss_put_cmd   = 'cp'
-    mdsspath._mdss_get_cmd   = 'cp'
-    mdsspath._mdss_mkdir_cmd = 'mkdir'
-    mdsspath._mdss_rm_cmd    = 'rm'
-
 def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812
     with open(fname, 'a'):
