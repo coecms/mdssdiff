@@ -122,6 +122,7 @@ def remote_put(prefix, files, project, verbose=0):
             mdss_mkdir(rdir, project)
         cmd = shlex.split(_mdss_put_cmd.format(project))
         cmd.extend((file,rfile))
+        if verbose > 0: print(file)
         if verbose > 1: print(" ".join(cmd))
         try:
             output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
@@ -138,6 +139,7 @@ def remote_get(prefix, files, project, verbose=0):
         mkdir_p(os.path.dirname(file))
         cmd = shlex.split(_mdss_get_cmd.format(project))
         cmd.extend([os.path.join(prefix,file),file])
+        if verbose > 0: print(file)
         if verbose > 1: print(cmd)
         try:
             output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
