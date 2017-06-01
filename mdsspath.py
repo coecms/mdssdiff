@@ -67,14 +67,14 @@ def mdss_ls(path,project,options=None):
         output = ''
     return(output)
 
-def mdss_listdir(path, project):
+def mdss_listdir(path, project, returnsize=False):
     """
     List the contents of the mdss path and return two tuples of filenames
     one for subdirectories, and one for non-directories (normal files and other
     stuff). 
     Adapted from http://code.activestate.com/recipes/499334-remove-ftp-directory-walk-equivalent/
     """
-    dirs, nondirs = [], []
+    dirs, nondirs, sizes = [], [], []
     listing = mdss_ls(path,project)
 
     for line in StringIO.StringIO(listing):
@@ -96,8 +96,12 @@ def mdss_listdir(path, project):
             dirs.append(filename)
         else:
             nondirs.append(filename)
+            if returnsize: sizes.append(getsize(line))
 
-    return dirs, nondirs
+    if returnsize: 
+        return dirs, nondirs, sizes
+    else:
+        return dirs, nondirs
 
 def mdss_mkdir(dir, project, verbose=0):
     cmd = shlex.split(_mdss_mkdir_cmd.format(project))

@@ -34,18 +34,30 @@ def walk(path,project=None):
     else:
         return mdsspath.walk(path,project)
 
-def getlisting(path,project=None,recursive=False):
+def getlisting(path,project=None,recursive=False,verbose=0):
 
     listing = set() 
 
     for (dname, dirnames, filenames) in walk(path,project):
 
+        if (verbose > 0): print("Walking directory {}".format(dname))
+
         if (dname != path and not recursive):
             print("Skipping subdirectories of {0} :: recursive option not specified".format(dname))
             break
     
+        if (verbose > 1): print("Adding files{}".format(filenames))
         for file in filenames:
             listing.add(os.path.join(dname,file))
+
+    return listing
+
+def makepath(path,files):
+
+    listing = []
+
+    for file in files:
+        listing.append(os.path.join(path,file))
 
     return listing
 
@@ -55,22 +67,59 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
 
     missinglocal = []; missingremote = []; mismatched = []; mismatchedsizes = []
 
-    localset = getlisting(directory,recursive=recursive)
-    remoteset = getlisting(os.path.join(prefix,directory),project=project,recursive=recursive)
+    visited = set()
 
-    for file in localset:
-        remotefile = os.path.join(prefix,file)
-        if remotefile in remoteset:
-            localsize = os.path.getsize(file)
-            remotesize = mdsspath.getsize(remotefile,project)
-            if localsize != remotesize:
-                mismatched.append(file)
-                mismatchedsizes.append((localsize,remotesize))
-            remoteset.discard(remotefile)
-        else:
-            missingremote.append(file)
+    # Walk local directory tree and compare to remore directory tree
+    for (dname, dirnames, filenames) in walk(directory):
 
-    missinglocal = map(lambda x: os.path.relpath(x,prefix),list(remoteset))
+        if (verbose > 0): print("Walking local directory {}".format(dname))
+
+        if (dname != directory and not recursive):
+            print("Skipping subdirectories of {0} :: recursive option not specified".format(dname))
+            break
+
+        visited.add(dname)
+
+        localset = set(filenames)
+        rdname = os.path.join(prefix,dname)
+        _, rfiles, rsizes = mdsspath.mdss_listdir(rdname,project,returnsize=True)
+        remoteset = dict(izip(rfiles,rsizes))
+
+        for file in localset:
+            localfile = os.path.join(dname,file)
+            if file in remoteset:
+                remotefile = os.path.join(rdname,file)
+                localsize = os.path.getsize(localfile)
+                # remotesize = mdsspath.getsize(remotefile,project)
+                remotesize = remoteset[file]
+                if (verbose > 2): print("File: {} sizes: {} (l) {} (r)".format(localfile,localsize,remotesize))
+                if localsize != remotesize:
+                    if (verbose > 1): print("File: {} sizes differ: {} (l) {} (r)".format(localfile,localsize,remotesize))
+                    mismatched.append(localfile)
+                    mismatchedsizes.append((localsize,remotesize))
+                del(remoteset[file])
+            else:
+                missingremote.append(localfile)
+    
+        missinglocal.extend(makepath(dname,remoteset.keys()))
+
+    rdirectory = os.path.join(prefix,directory)
+    
+    # Now walk the remote directory structure to see if we've missed any directories that
+    # are present locally
+    for (rdname, rdirnames, rfilenames) in walk(rdirectory,project=project):
+
+        ldirectory = os.path.relpath(rdname,prefix)
+
+        if (verbose > 0): print("Walking remote directory {}".format(rdname))
+
+        if (ldirectory != directory and not recursive):
+            print("Skipping subdirectories of {0} :: recursive option not specified".format(dname))
+            break
+
+        if ldirectory not in visited:
+            if (verbose > 0): print("Directory {} not found locally, adding files".format(ldirectory))
+            missinglocal.extend([os.path.join(ldirectory,file) for file in rfilenames])
 
     return(missinglocal, missingremote, mismatched, mismatchedsizes)
 if __name__ == "__main__":
