@@ -1,5 +1,5 @@
 # mdssdiff
-Look for differences between local filesystem and it's copy on a mass data store system
+Look for differences between local filesystem and its copy on a mass data store system
 
 [![Build Status](https://travis-ci.org/coecms/mdssdiff.svg?branch=master)](https://travis-ci.org/coecms/mdssdiff)
 [![codecov.io](https://codecov.io/github/coecms/mdssdiff/coverage.svg?branch=master)](https://codecov.io/github/coecms/mdssdiff?branch=master)
