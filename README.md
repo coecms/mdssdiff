@@ -22,8 +22,8 @@ usage: mdssdiff [-h] [-v] [-P PROJECT] [-p PATHPREFIX] [-r] [-cr | -cl] [-f]
 Compare local directories and those on mdss. Report differences
 
 positional arguments:
-  inputs                netCDF files or directories (-r must be specified to
-                        recursively descend directories)
+  inputs                directories (-r must be specified to recursively descend 
+                        into sub-directories)
 
 optional arguments:
   -h, --help            show this help message and exit
