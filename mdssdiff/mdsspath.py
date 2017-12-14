@@ -72,7 +72,7 @@ def mdss_listdir(path, project, returnsize=False):
     dirs, nondirs, sizes = [], [], []
     listing = mdss_ls(path,project)
 
-    for line in StringIO.StringIO(listing):
+    for line in StringIO(listing):
         # Parse, assuming a UNIX listing
         if line.startswith("total"): continue
         # Remove trailing newline (and whitespace)
