@@ -28,12 +28,8 @@ import shutil
 import shlex
 import subprocess
 
-# Find the python libraries we're testing
-sys.path.append('..')
-sys.path.append('.')
-
-import mdsspath
-import mdssdiff
+from mdssdiff import mdsspath
+from mdssdiff import mdssdiff
 
 dirs = ["1","2","3"]
 dirtree = os.path.join(*dirs)

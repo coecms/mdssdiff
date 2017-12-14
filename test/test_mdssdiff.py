@@ -28,11 +28,7 @@ import shutil
 import subprocess
 import shlex
 
-# Find the python libraries we're testing
-sys.path.append('..')
-sys.path.append('.')
-
-from mdssdiff import diffdir
+from mdssdiff.mdssdiff import diffdir, parse_args, main
 
 dirs = ["1","2","3"]
 dirtree = os.path.join(*dirs)
@@ -130,7 +126,9 @@ def test_diffdir():
 def test_sync():
 
     # Syncing different sized file from previous test
-    runcmd("mdssdiff.py -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+    print("mdssdiff -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+    # runcmd("mdssdiff -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+    main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
     missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
@@ -149,7 +147,7 @@ def test_sync():
     assert(len(mismatchedsizes) == 0)
 
     # Copy to remote
-    runcmd("mdssdiff.py -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+    main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
     missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
@@ -169,7 +167,7 @@ def test_sync():
     assert(len(mismatchedsizes) == 0)
 
     # Copy to remote
-    runcmd("mdssdiff.py -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
+    main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
     missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)

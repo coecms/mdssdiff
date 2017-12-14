@@ -21,6 +21,7 @@ limitations under the License.
 from __future__ import print_function
 
 import os
+import sys
 import subprocess
 import argparse
 import shlex
@@ -122,7 +123,8 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
             missinglocal.extend([os.path.join(ldirectory,file) for file in rfilenames])
 
     return(missinglocal, missingremote, mismatched, mismatchedsizes)
-if __name__ == "__main__":
+
+def parse_args(args):
 
     parser = argparse.ArgumentParser(description="Compare local directories and those on mdss. Report differences")
     parser.add_argument("-v","--verbose", help="Increase verbosity", action='count', default=0)
@@ -136,7 +138,10 @@ if __name__ == "__main__":
     #
     parser.add_argument("-f","--force", help="Force copying of different sized files, following --cr or --cl (False)", action='store_true')
     parser.add_argument("inputs", help="netCDF files or directories (-r must be specified to recursively descend directories)", nargs='+')
-    args = parser.parse_args()
+
+    return parser.parse_args(args)
+
+def main(args):
 
     if args.pathprefix is not None:
         prefix = args.pathprefix
@@ -191,3 +196,13 @@ if __name__ == "__main__":
                         print("Option to force copying (--force) given, but neither -cr nor -cl specified")
         else:
             print("Skipping {} :: not a directory".format(directory))
+
+def main_argv():
+    
+    args = parse_args(sys.argv[1:])
+
+    main(args)
+
+if __name__ == "__main__":
+
+    main_argv()
