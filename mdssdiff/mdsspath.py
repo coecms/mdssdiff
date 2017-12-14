@@ -7,7 +7,6 @@ import StringIO
 import datetime
 import time
 import re
-import example
 from six import StringIO
 
 _calmonths = dict( (x, i+1) for i, x in
