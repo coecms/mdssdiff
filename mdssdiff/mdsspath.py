@@ -39,7 +39,7 @@ def walk(top, project, topdown=True, onerror=None):
     # left to visit.  That logic is copied here.
     try:
         dirs, nondirs = mdss_listdir(top, project)
-    except os.error, err:
+    except os.error as err:
         if onerror is not None:
             onerror(err)
         return
