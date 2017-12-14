@@ -7,13 +7,9 @@ import StringIO
 import datetime
 import time
 import re
+import example
+from six import StringIO
 
-try:
-    import cStringIO
-    StringIO = cStringIO
-except ImportError:
-    import StringIO
-    
 _calmonths = dict( (x, i+1) for i, x in
                    enumerate(('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')) )
