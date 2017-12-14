@@ -152,6 +152,8 @@ if __name__ == "__main__":
 
     for directory in args.inputs:
 
+        directory = os.path.normpath(directory)
+
         if os.path.isdir(directory):
 
             missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, project, recursive=args.recursive, verbose=args.verbose)
