@@ -25,9 +25,8 @@ import sys
 import subprocess
 import argparse
 import shlex
-from itertools import izip
-
 import mdsspath
+from six.moves import zip
 
 def walk(path,project=None):
     if project is None:
@@ -84,7 +83,7 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
         localset = set(filenames)
         rdname = os.path.join(prefix,dname)
         _, rfiles, rsizes = mdsspath.mdss_listdir(rdname,project,returnsize=True)
-        remoteset = dict(izip(rfiles,rsizes))
+        remoteset = dict(zip(rfiles,rsizes))
 
         for file in localset:
             localfile = os.path.join(dname,file)
@@ -183,7 +182,7 @@ def main(args):
     
             if len(mismatched) > 0:
                 print("Size does not match:")
-                for file, (size, size_orig) in izip(mismatched, mismatchedsizes):
+                for file, (size, size_orig) in zip(mismatched, mismatchedsizes):
                     print("{} local: {} remote: {}".format(file, size, size_orig))
                 if args.force:
                     if args.copyremote:

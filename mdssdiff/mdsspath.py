@@ -3,7 +3,6 @@ import errno
 import sys
 import shlex
 import subprocess
-import StringIO
 import datetime
 import time
 import re
