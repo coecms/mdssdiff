@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import os
 import errno
 import sys
@@ -56,7 +58,7 @@ def mdss_ls(path,project,options=None):
         cmd.extend(options)
     cmd.append(path)
     try:
-        output = subprocess.check_output(cmd,stderr=subprocess.STDOUT)
+        output = subprocess.check_output(cmd,stderr=subprocess.STDOUT).decode('utf-8')
     except:
         output = ''
     return(output)

@@ -79,7 +79,7 @@ def setup_module(module):
     # Write 3 bytes into a local file
     file = os.path.join(*paths[2])
     fh = open(file,"wb")
-    fh.write("\x5F\x9D\x3E")
+    fh.write(b"\x5F\x9D\x3E")
     fh.close()
 
     # shutil.copytree(dirtreeroot, os.path.join(remote,dirtreeroot))

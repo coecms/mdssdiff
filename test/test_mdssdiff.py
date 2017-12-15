@@ -115,7 +115,7 @@ def test_diffdir():
     # Write 3 bytes into a local file
     file = os.path.join(*paths[2])
     fh = open(file,"wb")
-    fh.write("\x5F\x9D\x3E")
+    fh.write(b"\x5F\x9D\x3E")
     fh.close()
     missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)

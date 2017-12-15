@@ -18,14 +18,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import os
 import sys
 import subprocess
 import argparse
 import shlex
-import mdsspath
+import mdssdiff.mdsspath as mdsspath
 from six.moves import zip
 
 def walk(path,project=None):
@@ -90,7 +90,7 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
             if file in remoteset:
                 remotefile = os.path.join(rdname,file)
                 localsize = os.path.getsize(localfile)
-                # remotesize = mdsspath.getsize(remotefile,project)
+                # remotesize = getsize(remotefile,project)
                 remotesize = remoteset[file]
                 if (verbose > 2): print("File: {} sizes: {} (l) {} (r)".format(localfile,localsize,remotesize))
                 if localsize != remotesize:
