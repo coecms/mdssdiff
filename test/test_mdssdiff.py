@@ -37,7 +37,7 @@ paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1",
 prefix = "test_mdss"
 dirtreeroot = dirs[0]
 verbose=False
-project=os.environ['PROJECT']
+project=os.environ.get('PROJECT','a12')
 
 def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812

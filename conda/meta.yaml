@@ -33,5 +33,5 @@ test:
 about:
     home: https://github.com/coecms/mdssdiff
     license: Apache 2.0
-    license_file: LICENSE-2.0.txt
+    license_file: LICENSE
     summary: Report difference between directory tree on a local filesystem and on a remote mass data store. Some rudimentary synching supported.
