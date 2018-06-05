@@ -28,6 +28,8 @@ import shutil
 import shlex
 import subprocess
 
+import pdb #; pdb.set_trace()
+
 from mdssdiff import mdsspath
 from mdssdiff import mdssdiff
 
@@ -62,6 +64,9 @@ def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812
     with open(fname, 'a'):
         os.utime(fname, times)
+
+def mtime(fname):
+    return os.stat(fname).st_mtime
 
 def runcmd(cmd):
     subprocess.check_call(shlex.split(cmd),stderr=subprocess.STDOUT)
@@ -100,7 +105,8 @@ def test_integrity():
     assert(not mdsspath.isdir(dumbname,project))
     mdsspath.mdss_mkdir(dumbname,project)
     assert(mdsspath.isdir(dumbname,project))
-    assert(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project) == (['2'], ['lala', 'po']))
+    print(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project))
+    assert(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project)[0:2] == (['2'], ['lala', 'po']))
     assert(mdsspath.getsize(os.path.join(prefix,*paths[2]),project) == 3)
     
 def test_get():
@@ -112,10 +118,13 @@ def test_get():
         assert(os.path.isfile(file))
     # This will (indirectly) test mdsspath.walk
     listingremote = mdssdiff.getlisting(os.path.join(prefix,dirs[0]),project,recursive=True)
+    # pdb.set_trace()
     for file in listingremote:
         # print(file)
         assert(mdsspath.isfile(file,project))
         assert(os.path.relpath(file,prefix) in listinglocal)
+        # check the modification times are the same (within a minute resolution)
+        assert(mdsspath.getmtime(file,project) == mdsspath.localmtime(os.path.relpath(file,prefix)))
 
     missingfile = listinglocal.pop()
     os.remove(missingfile)

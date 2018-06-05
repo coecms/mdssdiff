@@ -65,7 +65,7 @@ def makepath(path,files):
 
 def diffdir(prefix, directory, project, recursive=False, verbose=0):
 
-    missinglocal = []; missingremote = []; mismatched = []; mismatchedsizes = []
+    missinglocal = []; missingremote = []; mismatchedsizes = {}; mismatchedtimes = {}
 
     visited = set()
 
@@ -82,21 +82,23 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
 
         localset = set(filenames)
         rdname = os.path.join(prefix,dname)
-        _, rfiles, rsizes = mdsspath.mdss_listdir(rdname,project,returnsize=True)
-        remoteset = dict(zip(rfiles,rsizes))
+        _, rfiles, rsizes, rmtimes = mdsspath.mdss_listdir(rdname,project)
+        remoteset = dict(zip(rfiles,zip(rsizes,rmtimes)))
 
         for file in localset:
             localfile = os.path.join(dname,file)
             if file in remoteset:
                 remotefile = os.path.join(rdname,file)
                 localsize = os.path.getsize(localfile)
-                # remotesize = getsize(remotefile,project)
-                remotesize = remoteset[file]
+                localmtime = mdsspath.localmtime(localfile)
+                remotesize, remotemtime = remoteset[file]
                 if (verbose > 2): print("File: {} sizes: {} (l) {} (r)".format(localfile,localsize,remotesize))
                 if localsize != remotesize:
                     if (verbose > 1): print("File: {} sizes differ: {} (l) {} (r)".format(localfile,localsize,remotesize))
-                    mismatched.append(localfile)
-                    mismatchedsizes.append((localsize,remotesize))
+                    mismatchedsizes[localfile] = (localsize,remotesize)
+                if localmtime != remotemtime:
+                    if (verbose > 1): print("File: {} modification times differ: {} (l) {} (r)".format(localfile,localmtime,remotemtime))
+                    mismatchedtimes[localfile] = (localmtime,remotemtime)
                 del(remoteset[file])
             else:
                 missingremote.append(localfile)
@@ -121,7 +123,7 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
             if (verbose > 0): print("Directory {} not found locally, adding files".format(ldirectory))
             missinglocal.extend([os.path.join(ldirectory,file) for file in rfilenames])
 
-    return(missinglocal, missingremote, mismatched, mismatchedsizes)
+    return(missinglocal, missingremote, mismatchedsizes, mismatchedtimes)
 
 def parse_args(args):
 
@@ -160,7 +162,7 @@ def main(args):
 
         if os.path.isdir(directory):
 
-            missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, directory, project, recursive=args.recursive, verbose=args.verbose)
+            missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, directory, project, recursive=args.recursive, verbose=args.verbose)
 
             if len(missinglocal) > 0:
                 if args.copylocal:
@@ -180,19 +182,37 @@ def main(args):
                 for file in missingremote:
                     print(file)
     
-            if len(mismatched) > 0:
+            if len(mismatchedsizes) > 0:
                 print("Size does not match:")
-                for file, (size, size_orig) in zip(mismatched, mismatchedsizes):
-                    print("{} local: {} remote: {}".format(file, size, size_orig))
+                for file in mismatchedsizes:
+                    localsize, remotesize = mismatchedsizes[file]
+                    print("{} local: {} remote: {}".format(file, localsize, remotesize))
                 if args.force:
                     if args.copyremote:
                         print("Copying to remote filesystem")
-                        mdsspath.remote_put(prefix,mismatched,project,verbose=args.verbose)
+                        mdsspath.remote_put(prefix,list(mismatchedsizes.keys()),project,verbose=args.verbose)
                     elif args.copylocal:
                         print("Copying to local filesystem")
-                        mdsspath.remote_get(prefix,mismatched,project,verbose=args.verbose)
+                        mdsspath.remote_get(prefix,list(mismatchedsizes.keys()),project,verbose=args.verbose)
+                    else:
+                        print("Option to force copying (--force) given, but neither -cr nor -cl specified") 
+
+            if len(mismatchedtimes) > 0:
+                print("Modification time does not match:")
+                for file in mismatchedtimes:
+                    localmtime, remotemtime = mismatchedtimes[file]
+                    print("{} local: {} remote: {}".format(file, localmtime, remotemtime))
+                if args.force:
+                    if args.copyremote:
+                        print("Copying to remote filesystem")
+                        mdsspath.remote_put(prefix,list(mismatchedtimes.keys()),project,verbose=args.verbose)
+                    elif args.copylocal:
+                        print("Copying to local filesystem")
+                        mdsspath.remote_get(prefix,list(mismatchedtimes.keys()),project,verbose=args.verbose)
                     else:
                         print("Option to force copying (--force) given, but neither -cr nor -cl specified")
+
+
         else:
             print("Skipping {} :: not a directory".format(directory))
 

@@ -27,6 +27,7 @@ import os
 import shutil
 import subprocess
 import shlex
+import datetime, time
 
 from mdssdiff.mdssdiff import diffdir, parse_args, main
 
@@ -36,11 +37,14 @@ print(dirtree)
 paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1","2","Pluto"], ["1","2","3","Ren"], ["1","2","3","Stimpy"] ]
 prefix = "test_mdss"
 dirtreeroot = dirs[0]
-verbose=False
+verbose=True
 project=os.environ.get('PROJECT','a12')
 
 def touch(fname, times=None):
     # http://stackoverflow.com/a/1160227/4727812
+    if times is not None:
+        times = (times,times)
+            
     with open(fname, 'a'):
         os.utime(fname, times)
 
@@ -67,61 +71,64 @@ def teardown_module(module):
     runcmd('mdss rm -r {}'.format(prefix))
 
 def test_diffdir():
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Remove a local file
     file = os.path.join(*paths[5])
     os.remove(file)
     if verbose: print('removing {}'.format(file))
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(missinglocal == [file])
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Remove same remote file
     remotefile = os.path.join(prefix,file)
     if verbose: print('removing {}'.format(remotefile))
     runcmd('mdss -P {} rm {}'.format(project,remotefile))
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Remove a remote file
     file = os.path.join(*paths[3])
     remotefile = os.path.join(prefix,file)
     if verbose: print('removing {}'.format(remotefile))
     runcmd('mdss -P {} rm {}'.format(project,remotefile))
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(len(missinglocal) == 0)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(missingremote == [file])
-    assert(len(mismatched) == 0)
+    assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Remove same local file
     os.remove(file)
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Write 3 bytes into a local file
     file = os.path.join(*paths[2])
     fh = open(file,"wb")
     fh.write(b"\x5F\x9D\x3E")
     fh.close()
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    dt = datetime.datetime.now() - datetime.timedelta(days=1)
+    touch(file,time.mktime(dt.timetuple()))
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(mismatched == [file])
-    assert(mismatchedsizes == [(3,0)])
+    assert(mismatchedsizes == {file : (3,0)})
+    # The time may vary, but we can't know for sure, so we won't check this
+    assert(mismatchedtimes)
 
 def test_sync():
 
@@ -130,48 +137,61 @@ def test_sync():
     # runcmd("mdssdiff -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
     main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # (re)Make a local file
     file = os.path.join(*paths[5])
     touch(file)
 
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(len(missinglocal) == 0)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(missingremote == [ file ])
-    assert(len(mismatched) == 0)
+    assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Copy to remote
     main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Remove same remote file
     remotefile = os.path.join(prefix,file)
     if verbose: print('removing {}'.format(remotefile))
     runcmd('mdss -P {} rm {}'.format(project,remotefile))
 
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(len(missinglocal) == 0)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(missingremote == [ file ])
-    assert(len(mismatched) == 0)
+    assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
 
     # Copy to remote
     main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
-    missinglocal, missingremote, mismatched, mismatchedsizes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    # Change the time
+    dt = datetime.datetime.now() - datetime.timedelta(days=1)
+    touch(file,time.mktime(dt.timetuple()))
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
-    assert(len(mismatched) == 0)
     assert(len(mismatchedsizes) == 0)
+    assert((mismatchedtimes[file][1] - mismatchedtimes[file][0]) == datetime.timedelta(days=1))
+
+    # Copy to remote
+    main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(len(missinglocal) == 0)
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    print(mismatchedtimes)
 

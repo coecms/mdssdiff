@@ -8,13 +8,14 @@ import subprocess
 import datetime
 import time
 import re
+import datetime
 from six import StringIO
 
 _calmonths = dict( (x, i+1) for i, x in
                    enumerate(('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')) )
 
-_mdss_ls_cmd    = 'mdss -P {} ls -l'
+_mdss_ls_cmd    = 'mdss -P {} dmls -l'
 _mdss_put_cmd   = 'mdss -P {} put'
 _mdss_get_cmd   = 'mdss -P {} get'
 _mdss_mkdir_cmd = 'mdss -P {} mkdir'
@@ -34,7 +35,7 @@ def walk(top, project, topdown=True, onerror=None):
     # minor reason when (say) a thousand readable directories are still
     # left to visit.  That logic is copied here.
     try:
-        dirs, nondirs = mdss_listdir(top, project)
+        dirs, nondirs, _, _ = mdss_listdir(top, project)
     except os.error as err:
         if onerror is not None:
             onerror(err)
@@ -63,14 +64,14 @@ def mdss_ls(path,project,options=None):
         output = ''
     return(output)
 
-def mdss_listdir(path, project, returnsize=False):
+def mdss_listdir(path, project):
     """
     List the contents of the mdss path and return two tuples of filenames
     one for subdirectories, and one for non-directories (normal files and other
     stuff). 
     Adapted from http://code.activestate.com/recipes/499334-remove-ftp-directory-walk-equivalent/
     """
-    dirs, nondirs, sizes = [], [], []
+    dirs, nondirs, sizes, times = [], [], [], []
     listing = mdss_ls(path,project)
 
     for line in StringIO(listing):
@@ -92,12 +93,10 @@ def mdss_listdir(path, project, returnsize=False):
             dirs.append(filename)
         else:
             nondirs.append(filename)
-            if returnsize: sizes.append(getsize(line))
+            sizes.append(getsize(line))
+            times.append(getmtime(line))
 
-    if returnsize: 
-        return dirs, nondirs, sizes
-    else:
-        return dirs, nondirs
+    return dirs, nondirs, sizes, times
 
 def mdss_mkdir(dir, project, verbose=0):
     cmd = shlex.split(_mdss_mkdir_cmd.format(project))
@@ -209,27 +208,22 @@ def getls(path,project=None):
     return line
 
 def getmtime(path,project=None):
-    """Return the last modification time of a file parsed from listing.
-    This is potentially spectacularly inaccurate, as times older than 6 months
-    have only year/month/day and no time of day information."""
+    """Return last modification time of a file parsed from listing as 
+    datetime object to minute precision."""
     line = getls(path,project)
     words = line.split(None, 8)
     if len(words) < 6:
         return None
 
     # Get the date.
-    year = datetime.datetime.today().year
-    month = _calmonths[words[5]]
-    day = int(words[6])
-    mo = re.match('(\d+):(\d+)', words[7])
-    if mo:
-        hour, min = map(int, mo.groups())
-    else:
-        mo = re.match('(\d\d\d\d)', words[7])
-        if mo:
-            year = int(mo.group(1))
-            hour, min = 0, 0
-        else:
-            raise ValueError("Could not parse time/year in line: '%s'" % line)
-    dt = datetime.datetime(year, month, day, hour, min)
-    return time.mktime(dt.timetuple())
+    return datetime.datetime.strptime("{} {}".format(words[5],words[6]), "%Y-%m-%d %H:%M" )
+
+def localmtime(path):
+    """Return last modification time given the path to a file on the
+    local file system. Returned as datetime object with minute precision
+    to match time resolution available from mdss."""
+
+    dt = datetime.datetime.fromtimestamp(os.stat(path).st_mtime)
+
+    return dt - datetime.timedelta(seconds=dt.second)
+
