@@ -225,5 +225,6 @@ def localmtime(path):
 
     dt = datetime.datetime.fromtimestamp(os.stat(path).st_mtime)
 
-    return dt - datetime.timedelta(seconds=dt.second)
+    # return dt - datetime.timedelta(seconds=dt.second,microseconds=dt.microsecond)
+    return dt.replace(second=0,microsecond=0)
 
