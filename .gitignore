@@ -63,3 +63,4 @@ target/
 *.db
 
 /README.cookiecutter.md
+.pytest_cache
