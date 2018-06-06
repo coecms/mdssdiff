@@ -31,13 +31,15 @@ import datetime, time
 
 from mdssdiff.mdssdiff import diffdir, parse_args, main
 
+import pdb #; pdb.set_trace()
+
 dirs = ["1","2","3"]
 dirtree = os.path.join(*dirs)
 print(dirtree)
 paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1","2","Pluto"], ["1","2","3","Ren"], ["1","2","3","Stimpy"] ]
 prefix = "test_mdss"
 dirtreeroot = dirs[0]
-verbose=True
+verbose=False
 project=os.environ.get('PROJECT','a12')
 
 def touch(fname, times=None):
@@ -133,8 +135,6 @@ def test_diffdir():
 def test_sync():
 
     # Syncing different sized file from previous test
-    print("mdssdiff -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
-    # runcmd("mdssdiff -r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))
     main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
@@ -193,5 +193,4 @@ def test_sync():
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
-    print(mismatchedtimes)
 
