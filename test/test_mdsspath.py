@@ -107,6 +107,13 @@ def test_integrity():
     assert(mdsspath.isdir(dumbname,project))
     assert(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project)[0:2] == (['2'], ['lala', 'po']))
     assert(mdsspath.getsize(os.path.join(prefix,*paths[2]),project) == 3)
+def test_localmtime():
+    """
+    Test localmtime returns datetime object without seconds resolution
+    """
+    dt = mdsspath.localmtime(os.path.join(*paths[2]))
+    assert(dt.second == 0)
+    
     
 def test_get():
 
