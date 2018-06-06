@@ -52,7 +52,7 @@ try:
 except:
     # Monkey-patch to use local file commands if we don't
     print("\n\n!!! No mdss: Monkey patching to use local commands !!!\n")
-    mdsspath._mdss_ls_cmd    = 'ls -l'
+    mdsspath._mdss_ls_cmd    = 'ls -l --time-style=+"%Y-%m-%d %H:%M ___ "'
     mdsspath._mdss_put_cmd   = 'cp'
     mdsspath._mdss_get_cmd   = 'cp'
     mdsspath._mdss_mkdir_cmd = 'mkdir'
@@ -105,7 +105,6 @@ def test_integrity():
     assert(not mdsspath.isdir(dumbname,project))
     mdsspath.mdss_mkdir(dumbname,project)
     assert(mdsspath.isdir(dumbname,project))
-    print(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project))
     assert(mdsspath.mdss_listdir(os.path.join(prefix,dirs[0]),project)[0:2] == (['2'], ['lala', 'po']))
     assert(mdsspath.getsize(os.path.join(prefix,*paths[2]),project) == 3)
     

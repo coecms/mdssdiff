@@ -1,1 +1,4 @@
-{}
+{
+  "test/test_mdssdiff.py::test_diffdir": true,
+  "test/test_mdssdiff.py::test_sync": true
+}
