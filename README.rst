@@ -22,7 +22,6 @@ https://accessdev.nci.org.au/trac/wiki/User%20Guides/conda`:
 ::
 
     module use /g/data3/hh5/public/modules
-    module use /g/data3/hh5/public/modules
     module load python/analysis27
 
 To use the older standalone python version:
