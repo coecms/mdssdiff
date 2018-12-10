@@ -64,7 +64,7 @@ def makepath(path,files):
 
 # supported_file_types = ('-','b','c','C')
 
-def diffdir(prefix, directory, project, recursive=False, verbose=0, filter=None):
+def diffdir(prefix, directory, project, recursive=False, verbose=0, match=None):
 
     missinglocal = []; missingremote = []; mismatchedsizes = {}; mismatchedtimes = {}
 
@@ -89,10 +89,10 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0, filter=None)
         for file in localset:
             localfile = os.path.join(dname,file)
 
-            if filter is not None and not fnmatch(localfile,filter):
-                # Ignore files not matching the filter pattern
+            if match is not None and not fnmatch(localfile,match):
+                # Ignore files not matching pattern
                 if (verbose > 1): 
-                    print("Doesn't match filter, ignoring {}".format(localfile))
+                    print("Doesn't match, ignoring {}".format(localfile))
                 if file in remoteset:
                     del(remoteset[file])
             else:
@@ -113,7 +113,7 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0, filter=None)
                     missingremote.append(localfile)
 
         for file in remoteset.keys():
-            if filter is not None and not fnmatch(file,filter):
+            if match is not None and not fnmatch(file,match):
                 continue
             missinglocal.append(os.path.join(dname,file))
 
@@ -144,7 +144,7 @@ def parse_args(args):
     parser.add_argument("-P","--project", help="Project code for mdss (default to $PROJECT)")
     parser.add_argument("-p","--pathprefix", help="Prefix for mdss path")
     parser.add_argument("-r","--recursive", help="Recursively descend directories (default False)", action='store_true')
-    parser.add_argument("--filter", help="Operate only on files matching filter")
+    parser.add_argument("-m","--match", help="Operate only on files matching filter")
     #
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-cr","--copyremote", help="Copy over files that are missing on remote (False)", action='store_true')
@@ -176,7 +176,7 @@ def main(args):
         if os.path.isdir(directory):
 
             missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, directory, project, 
-                        recursive=args.recursive, verbose=args.verbose, filter=args.filter)
+                        recursive=args.recursive, verbose=args.verbose, match=args.match)
 
             if len(missinglocal) > 0:
                 if args.copylocal:

@@ -193,7 +193,7 @@ def test_sync():
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
 
-def test_filter():
+def test_match():
 
     setup_files()
 
@@ -212,19 +212,19 @@ def test_filter():
             other_files.append(file)
 
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(missinglocal == sorted(files))
+    assert(sorted(missinglocal) == sorted(files))
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
 
-    # Should be no overlap between this filter and files removed above
-    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter="*la*")
+    # Should be no overlap between this match and files removed above
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, match="*la*")
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
 
-    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter=other_pattern)
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, match=other_pattern)
     assert(missinglocal == sorted(list(set(files).intersection(other_files))))
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
@@ -247,20 +247,20 @@ def test_filter():
             other_files.append(file)
 
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(missingremote == sorted(files))
+    assert(sorted(missingremote) == sorted(files))
     assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
 
-    # Should be no overlap between this filter and files removed above
-    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter="*la*")
+    # Should be no overlap between this match and files removed above
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, match="*la*")
     assert(len(missinglocal) == 0)
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
 
-    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter=other_pattern)
-    assert(missingremote == sorted(list(set(files).intersection(other_files))))
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, match=other_pattern)
+    assert(sorted(missingremote) == sorted(list(set(files).intersection(other_files))))
     assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
