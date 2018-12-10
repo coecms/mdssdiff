@@ -41,7 +41,7 @@ print(dirtree)
 paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1","2","Pluto"], ["1","2","3","Ren"], ["1","2","3","Stimpy"] ]
 prefix = "test_mdss"
 dirtreeroot = dirs[0]
-verbose=3
+verbose=0
 project=os.environ.get('PROJECT','a12')
 
 def touch(fname, times=None):
@@ -212,7 +212,7 @@ def test_filter():
             other_files.append(file)
 
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(missinglocal == files)
+    assert(missinglocal == sorted(files))
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
@@ -247,7 +247,7 @@ def test_filter():
             other_files.append(file)
 
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
-    assert(missingremote == files)
+    assert(missingremote == sorted(files))
     assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
