@@ -223,8 +223,6 @@ def localmtime(path):
     local file system. Returned as datetime object with minute precision
     to match time resolution available from mdss."""
 
-    dt = datetime.datetime.fromtimestamp(os.stat(path).st_mtime)
+    return datetime.datetime.fromtimestamp(os.stat(path).st_mtime).replace(second=0,microsecond=0)
 
-    # return dt - datetime.timedelta(seconds=dt.second,microseconds=dt.microsecond)
-    return dt.replace(second=0,microsecond=0)
 

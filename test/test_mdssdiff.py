@@ -29,6 +29,8 @@ import subprocess
 import shlex
 import datetime, time
 
+from fnmatch import fnmatch
+
 from mdssdiff.mdssdiff import diffdir, parse_args, main
 
 import pdb #; pdb.set_trace()
@@ -39,7 +41,7 @@ print(dirtree)
 paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1","2","Pluto"], ["1","2","3","Ren"], ["1","2","3","Stimpy"] ]
 prefix = "test_mdss"
 dirtreeroot = dirs[0]
-verbose=False
+verbose=3
 project=os.environ.get('PROJECT','a12')
 
 def touch(fname, times=None):
@@ -53,6 +55,13 @@ def touch(fname, times=None):
 def runcmd(cmd):
     subprocess.check_call(shlex.split(cmd),stderr=subprocess.STDOUT)
 
+def setup_files():
+    for p in paths:
+        touch(os.path.join(*p))
+    # shutil.copytree(dirtreeroot, os.path.join(remote,dirtreeroot))
+    runcmd('mdss mkdir {}'.format(prefix))
+    runcmd('mdss put -r {} {}'.format(dirs[0],prefix))
+
 def setup_module(module):
     if verbose: print ("setup_module      module:%s" % module.__name__)
     try:
@@ -60,18 +69,8 @@ def setup_module(module):
     except:
         pass
     os.makedirs(dirtree)
-    for p in paths:
-        touch(os.path.join(*p))
-    # shutil.copytree(dirtreeroot, os.path.join(remote,dirtreeroot))
-    runcmd('mdss mkdir {}'.format(prefix))
-    runcmd('mdss put -r {} {}'.format(dirs[0],prefix))
- 
- 
-def teardown_module(module):
-    if verbose: print ("teardown_module   module:%s" % module.__name__)
-    shutil.rmtree(dirtreeroot)
-    runcmd('mdss rm -r {}'.format(prefix))
-
+    setup_files()
+    
 def test_diffdir():
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True)
     assert(len(missinglocal) == 0)
@@ -194,3 +193,74 @@ def test_sync():
     assert(len(missingremote) == 0)
     assert(len(mismatchedsizes) == 0)
 
+def test_filter():
+
+    setup_files()
+
+    pattern = '*M*'
+    other_pattern = '*i*'
+    files = []
+    other_files = []
+
+    for p in paths:
+        file = os.path.join(*p)
+        if fnmatch(file,pattern):
+            files.append(file)
+            print("Removing {}".format(file))
+            os.remove(file)
+        if fnmatch(file,other_pattern):
+            other_files.append(file)
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(missinglocal == files)
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+
+    # Should be no overlap between this filter and files removed above
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter="*la*")
+    assert(len(missinglocal) == 0)
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter=other_pattern)
+    assert(missinglocal == sorted(list(set(files).intersection(other_files))))
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+
+    setup_files()
+
+    files = []
+    other_files = []
+
+    for p in paths:
+        file = os.path.join(*p)
+        if fnmatch(file,pattern):
+            files.append(file)
+            # Remove same remote file
+            remotefile = os.path.join(prefix,file)
+            if verbose: print('removing {}'.format(remotefile))
+            runcmd('mdss -P {} rm {}'.format(project,remotefile))
+        if fnmatch(file,other_pattern):
+            other_files.append(file)
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(missingremote == files)
+    assert(len(missinglocal) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+
+    # Should be no overlap between this filter and files removed above
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter="*la*")
+    assert(len(missinglocal) == 0)
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, filter=other_pattern)
+    assert(missingremote == sorted(list(set(files).intersection(other_files))))
+    assert(len(missinglocal) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)

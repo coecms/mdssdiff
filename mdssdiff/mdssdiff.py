@@ -27,6 +27,7 @@ import argparse
 import shlex
 import mdssdiff.mdsspath as mdsspath
 from six.moves import zip
+from fnmatch import fnmatch
 
 def walk(path,project=None):
     if project is None:
@@ -63,7 +64,7 @@ def makepath(path,files):
 
 # supported_file_types = ('-','b','c','C')
 
-def diffdir(prefix, directory, project, recursive=False, verbose=0):
+def diffdir(prefix, directory, project, recursive=False, verbose=0, filter=None):
 
     missinglocal = []; missingremote = []; mismatchedsizes = {}; mismatchedtimes = {}
 
@@ -87,23 +88,34 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0):
 
         for file in localset:
             localfile = os.path.join(dname,file)
-            if file in remoteset:
-                remotefile = os.path.join(rdname,file)
-                localsize = os.path.getsize(localfile)
-                localmtime = mdsspath.localmtime(localfile)
-                remotesize, remotemtime = remoteset[file]
-                if (verbose > 2): print("File: {} sizes: {} (l) {} (r)".format(localfile,localsize,remotesize))
-                if localsize != remotesize:
-                    if (verbose > 1): print("File: {} sizes differ: {} (l) {} (r)".format(localfile,localsize,remotesize))
-                    mismatchedsizes[localfile] = (localsize,remotesize)
-                if localmtime != remotemtime:
-                    if (verbose > 1): print("File: {} modification times differ: {} (l) {} (r)".format(localfile,localmtime,remotemtime))
-                    mismatchedtimes[localfile] = (localmtime,remotemtime)
-                del(remoteset[file])
+
+            if filter is not None and not fnmatch(localfile,filter):
+                # Ignore files not matching the filter pattern
+                if (verbose > 1): 
+                    print("Doesn't match filter, ignoring {}".format(localfile))
+                if file in remoteset:
+                    del(remoteset[file])
             else:
-                missingremote.append(localfile)
-    
-        missinglocal.extend(makepath(dname,remoteset.keys()))
+                if file in remoteset:
+                    remotefile = os.path.join(rdname,file)
+                    localsize = os.path.getsize(localfile)
+                    localmtime = mdsspath.localmtime(localfile)
+                    remotesize, remotemtime = remoteset[file]
+                    if (verbose > 2): print("File: {} sizes: {} (l) {} (r)".format(localfile,localsize,remotesize))
+                    if localsize != remotesize:
+                        if (verbose > 1): print("File: {} sizes differ: {} (l) {} (r)".format(localfile,localsize,remotesize))
+                        mismatchedsizes[localfile] = (localsize,remotesize)
+                    if localmtime != remotemtime:
+                        if (verbose > 1): print("File: {} modification times differ: {} (l) {} (r)".format(localfile,localmtime,remotemtime))
+                        mismatchedtimes[localfile] = (localmtime,remotemtime)
+                    del(remoteset[file])
+                else:
+                    missingremote.append(localfile)
+
+        for file in remoteset.keys():
+            if filter is not None and not fnmatch(file,filter):
+                continue
+            missinglocal.append(os.path.join(dname,file))
 
     rdirectory = os.path.join(prefix,directory)
     
@@ -132,6 +144,7 @@ def parse_args(args):
     parser.add_argument("-P","--project", help="Project code for mdss (default to $PROJECT)")
     parser.add_argument("-p","--pathprefix", help="Prefix for mdss path")
     parser.add_argument("-r","--recursive", help="Recursively descend directories (default False)", action='store_true')
+    parser.add_argument("--filter", help="Operate only on files matching filter")
     #
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-cr","--copyremote", help="Copy over files that are missing on remote (False)", action='store_true')
@@ -162,7 +175,8 @@ def main(args):
 
         if os.path.isdir(directory):
 
-            missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, directory, project, recursive=args.recursive, verbose=args.verbose)
+            missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, directory, project, 
+                        recursive=args.recursive, verbose=args.verbose, filter=args.filter)
 
             if len(missinglocal) > 0:
                 if args.copylocal:
