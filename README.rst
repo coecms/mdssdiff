@@ -54,6 +54,9 @@ Basic usage message:
       -p PATHPREFIX, --pathprefix PATHPREFIX
                             Prefix for mdss path
       -r, --recursive       Recursively descend directories (default False)
+      -m MATCH, --match MATCH
+                            Operate only on files matching filter
+
       -cr, --copyremote     Copy over files that are missing on remote (False)
       -cl, --copylocal      Copy over files that are missing on local (False)
       -f, --force           Force copying of different sized files, following --cr
@@ -119,3 +122,13 @@ local directory to mdss
 ::
 
    mdssdiff -p personal/me -r -cr -f data
+
+If you want to only compare files matching a certain pattern use the
+``-m/--match`` option, which uses shell globbing_ sytax and only files
+matching that pattern will be checking and optionally copied
+
+.._globbing: http://tldp.org/LDP/abs/html/globbingref.html
+
+::
+
+   mdssdiff -p personal/me -r -m "*.bin" data
