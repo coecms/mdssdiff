@@ -124,10 +124,9 @@ local directory to mdss
    mdssdiff -p personal/me -r -cr -f data
 
 If you want to only compare files matching a certain pattern use the
-``-m/--match`` option, which uses shell globbing_ sytax and only files
-matching that pattern will be checking and optionally copied
-
-.._globbing: http://tldp.org/LDP/abs/html/globbingref.html
+``-m/--match`` option, which uses shell 
+`globbing <http://tldp.org/LDP/abs/html/globbingref.html>`_
+syntax and only files matching that pattern will be checking and optionally copied
 
 ::
 
