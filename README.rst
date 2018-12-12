@@ -97,6 +97,11 @@ To recursively descend directories to check for differences use the
 This will also work the other way, and tell you if there are files on
 the remote system that are not present locally.
 
+Only directories can be specified. Wildcards (globs) are not supported.
+This is to prevent confusion and potential sources of error. This tool is designed
+to check two identical directory trees, one local and the other remote (on the mdss
+tape system). It WILL NOT FOLLOW SYMBOLIC LINKS. Again, this is by design. 
+
 If there are files in your local directory that are not on the mdss, say
 you made some new ones or your last mdss copy command failed to complete
 cleanly, and you wish to copy them to mdss you can use the
