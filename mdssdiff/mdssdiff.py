@@ -133,7 +133,10 @@ def diffdir(prefix, directory, project, recursive=False, verbose=0, match=None):
 
         if ldirectory not in visited:
             if (verbose > 0): print("Directory {} not found locally, adding files".format(ldirectory))
-            missinglocal.extend([os.path.join(ldirectory,file) for file in rfilenames])
+            for file in rfilenames:
+                if match is not None and not fnmatch(file,match):
+                    continue
+                missinglocal.append(os.path.join(ldirectory,file))
 
     return(missinglocal, missingremote, mismatchedsizes, mismatchedtimes)
 
