@@ -153,7 +153,7 @@ def parse_args(args):
     group.add_argument("-cr","--copyremote", help="Copy files from local filesyste to mdss that are missing (False)", action='store_true')
     group.add_argument("--copylocal", help="Copy files from mdss to local filesystem that are missing (False)", action='store_true')
     #
-    parser.add_argument("-f","--force", help="Force copying of different sized files, following --cr or --cl (False)", action='store_true')
+    parser.add_argument("-f","--force", help="Force copying of different, following --copyremote or --copylocal (False)", action='store_true')
     parser.add_argument("inputs", help="netCDF files or directories (-r must be specified to recursively descend directories)", nargs='+')
 
     return parser.parse_args(args)
@@ -212,7 +212,7 @@ def main(args):
                         print("Copying to local filesystem")
                         mdsspath.remote_get(prefix,list(mismatchedsizes.keys()),project,verbose=args.verbose)
                     else:
-                        print("Option to force copying (--force) given, but neither -cr nor -cl specified") 
+                        print("Option to force copying (--force) given, but neither --copyremote nor --copylocal specified") 
 
             if len(mismatchedtimes) > 0:
                 print("Modification time does not match:")
@@ -227,7 +227,7 @@ def main(args):
                         print("Copying to local filesystem")
                         mdsspath.remote_get(prefix,list(mismatchedtimes.keys()),project,verbose=args.verbose)
                     else:
-                        print("Option to force copying (--force) given, but neither -cr nor -cl specified")
+                        print("Option to force copying (--force) given, but neither --copyremote nor --copylocal specified")
 
 
         else:
