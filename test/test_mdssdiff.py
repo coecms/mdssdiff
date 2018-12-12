@@ -64,7 +64,14 @@ def remove_local_files():
 
 def remove_remote_files():
     try:
-        shutil.rmtree(dirtreeroot)
+        runcmd('mdss rm -rf {}'.format(os.path.join(prefix,dirtreeroot)))
+        # Remove all the files
+        for p in paths:
+            runcmd('mdss rm {}'.format(os.path.join(*p)))
+        # Now try and remote the directories
+        dirs = set([os.path.join(*p[-1]) for p in paths])
+        for d in dirs:
+            runcmd('mdss rmdir {}'.format(d))
     except:
         pass
 
