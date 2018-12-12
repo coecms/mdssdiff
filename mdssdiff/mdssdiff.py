@@ -198,37 +198,31 @@ def main(args):
                     print("Missing on remote filesystem:")
                 for file in missingremote:
                     print(file)
-    
+
             if len(mismatchedsizes) > 0:
                 print("Size does not match:")
                 for file in mismatchedsizes:
                     localsize, remotesize = mismatchedsizes[file]
                     print("{} local: {} remote: {}".format(file, localsize, remotesize))
-                if args.force:
-                    if args.copyremote:
-                        print("Copying to remote filesystem")
-                        mdsspath.remote_put(prefix,list(mismatchedsizes.keys()),project,verbose=args.verbose)
-                    elif args.copylocal:
-                        print("Copying to local filesystem")
-                        mdsspath.remote_get(prefix,list(mismatchedsizes.keys()),project,verbose=args.verbose)
-                    else:
-                        print("Option to force copying (--force) given, but neither --copyremote nor --copylocal specified") 
 
             if len(mismatchedtimes) > 0:
                 print("Modification time does not match:")
                 for file in mismatchedtimes:
                     localmtime, remotemtime = mismatchedtimes[file]
                     print("{} local: {} remote: {}".format(file, localmtime, remotemtime))
-                if args.force:
+
+            if args.force:
+                # Create unique list of files to copy
+                for file in set(sorted(mismatchedtimes.keys()) + sorted(mismatchedsizes.keys())):
                     if args.copyremote:
                         print("Copying to remote filesystem")
-                        mdsspath.remote_put(prefix,list(mismatchedtimes.keys()),project,verbose=args.verbose)
+                        mdsspath.remote_put(prefix,file,project,verbose=args.verbose)
                     elif args.copylocal:
                         print("Copying to local filesystem")
-                        mdsspath.remote_get(prefix,list(mismatchedtimes.keys()),project,verbose=args.verbose)
+                        mdsspath.remote_get(prefix,file,project,verbose=args.verbose)
                     else:
-                        print("Option to force copying (--force) given, but neither --copyremote nor --copylocal specified")
-
+                        print("Option to force copying (--force) given, but neither --copyremote nor --copylocal specified") 
+                        break
 
         else:
             print("Skipping {} :: not a directory".format(directory))
