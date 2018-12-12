@@ -39,7 +39,8 @@ dirs = ["1","2","3"]
 dirtree = os.path.join(*dirs)
 print(dirtree)
 paths = [ ["1","lala"], ["1","po"], ["1","2","Mickey"], ["1","2","Minny"], ["1","2","Pluto"], ["1","2","3","Ren"], ["1","2","3","Stimpy"] ]
-prefix = "test_mdss"
+user=os.environ.get('USER','username')
+prefix = os.path.join(user,"test_mdss")
 dirtreeroot = dirs[0]
 verbose=0
 project=os.environ.get('PROJECT','a12')
@@ -55,6 +56,22 @@ def touch(fname, times=None):
 def runcmd(cmd):
     subprocess.check_call(shlex.split(cmd),stderr=subprocess.STDOUT)
 
+def remove_local_files():
+    try:
+        shutil.rmtree(dirtreeroot)
+    except:
+        pass
+
+def remove_remote_files():
+    try:
+        shutil.rmtree(dirtreeroot)
+    except:
+        pass
+
+def remove_files():
+    remove_local_files()
+    remove_remote_files()
+
 def setup_files():
     for p in paths:
         touch(os.path.join(*p))
@@ -64,12 +81,13 @@ def setup_files():
 
 def setup_module(module):
     if verbose: print ("setup_module      module:%s" % module.__name__)
-    try:
-        shutil.rmtree(dirtreeroot)
-    except:
-        pass
+    remove_files()
     os.makedirs(dirtree)
     setup_files()
+    
+def teardown_module(module):
+    if verbose: print ("setup_module      module:%s" % module.__name__)
+    remove_files()
     
 def test_diffdir():
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True)
@@ -176,7 +194,7 @@ def test_sync():
     main(parse_args(shlex.split("-r -P {} -cr -f -p {} {}".format(project,prefix,dirs[0]))))
 
     # Change the time
-    dt = datetime.datetime.now() - datetime.timedelta(days=1)
+    dt = datetime.datetime.fromtimestamp(os.path.getmtime(file)) - datetime.timedelta(days=1)
     touch(file,time.mktime(dt.timetuple()))
 
     missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
@@ -264,3 +282,18 @@ def test_match():
     assert(len(missinglocal) == 0)
     assert(len(mismatchedsizes) == 0)
     assert(len(mismatchedtimes) == 0)
+
+    setup_files()
+    remove_local_files()
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose)
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+    assert(sorted(missinglocal) == sorted([os.path.join(*p) for p in paths]))
+
+    missinglocal, missingremote, mismatchedsizes, mismatchedtimes = diffdir(prefix, dirtreeroot, project, recursive=True, verbose=verbose, match=other_pattern)
+    assert(len(missingremote) == 0)
+    assert(len(mismatchedsizes) == 0)
+    assert(len(mismatchedtimes) == 0)
+    assert(sorted(missinglocal) == sorted(other_files))
