@@ -5,7 +5,7 @@
    :target: https://codecov.io/github/coecms/mdssdiff?branch=master
    :alt: Codecov Status
 .. image:: https://circleci.com/gh/coecms/mdssdiff.svg?style=shield
-  :target: https://circleci.com/gh/coecms/mdssdiff
+   :target: https://circleci.com/gh/coecms/mdssdiff
    :alt: Circle CI
 
 =============================
