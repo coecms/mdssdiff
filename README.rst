@@ -1,9 +1,3 @@
-=============================
-mdssdiff
-=============================
-
-Report difference between directory tree on a local filesystem and on a remote mass data store. Some rudimentary synching supported.
-
 .. |Build Status| image:: https://travis-ci.org/coecms/mdssdiff.svg?branch=master
    :target: https://travis-ci.org/coecms/mdssdiff
 .. |codecov.io| image:: https://codecov.io/github/coecms/mdssdiff/coverage.svg?branch=master
@@ -12,6 +6,12 @@ Report difference between directory tree on a local filesystem and on a remote m
    :target: https://landscape.io/github/coecms/mdssdiff/master
 .. |Conda Status| image:: https://circleci.com/gh/coecms/mdssdiff.svg?style=shield
   :target: https://circleci.com/gh/coecms/mdssdiff
+
+=============================
+mdssdiff
+=============================
+
+Report difference between directory tree on a local filesystem and on a remote mass data store. Some rudimentary synching supported.
 
 Look for differences between local filesystem and its copy on a mass
 data store system
