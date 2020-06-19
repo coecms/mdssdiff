@@ -1,11 +1,12 @@
-.. |Build Status| image:: https://travis-ci.org/coecms/mdssdiff.svg?branch=master
+.. image:: https://travis-ci.org/coecms/mdssdiff.svg?branch=master
    :target: https://travis-ci.org/coecms/mdssdiff
-.. |codecov.io| image:: https://codecov.io/github/coecms/mdssdiff/coverage.svg?branch=master
+   :alt: Travis CI
+.. image:: https://codecov.io/github/coecms/mdssdiff/coverage.svg?branch=master
    :target: https://codecov.io/github/coecms/mdssdiff?branch=master
-.. |Code Health| image:: https://landscape.io/github/coecms/mdssdiff/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/coecms/mdssdiff/master
-.. |Conda Status| image:: https://circleci.com/gh/coecms/mdssdiff.svg?style=shield
+   :alt: Codecov Status
+.. image:: https://circleci.com/gh/coecms/mdssdiff.svg?style=shield
   :target: https://circleci.com/gh/coecms/mdssdiff
+   :alt: Circle CI
 
 =============================
 mdssdiff
