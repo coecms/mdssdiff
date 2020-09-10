@@ -23,7 +23,7 @@ https://accessdev.nci.org.au/trac/wiki/User%20Guides/conda`:
 ::
 
     module use /g/data3/hh5/public/modules
-    module load python/analysis27
+    module load python/analysis3
 
 Basic usage message:
 
