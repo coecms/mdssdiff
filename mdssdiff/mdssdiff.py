@@ -151,7 +151,7 @@ def parse_args(args):
     #
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-cr","--copyremote", help="Copy files from local filesyste to mdss that are missing (False)", action='store_true')
-    group.add_argument("--copylocal", help="Copy files from mdss to local filesystem that are missing (False)", action='store_true')
+    group.add_argument("-cl","--copylocal", help="Copy files from mdss to local filesystem that are missing (False)", action='store_true')
     #
     parser.add_argument("-f","--force", help="Force copying of different, following --copyremote or --copylocal (False)", action='store_true')
     parser.add_argument("inputs", help="netCDF files or directories (-r must be specified to recursively descend directories)", nargs='+')
